@@ -1,0 +1,5 @@
+{
+	"mysql_executable" : "/usr/local/mysql/bin/mysql",
+	"mysql_user" : "root",
+	"mysql_pass" : ""
+}
