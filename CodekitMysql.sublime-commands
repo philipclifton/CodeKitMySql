@@ -1,0 +1,14 @@
+[
+    {
+        "caption": "MySql: All Rows",
+        "command": "show_whole_table"
+    },
+     {
+        "caption": "MySql: Single Row",
+        "command": "show_single_row"
+    },
+     {
+        "caption": "MySql: Limited Rows",
+        "command": "show_between"
+    },
+]
