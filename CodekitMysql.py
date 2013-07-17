@@ -4,6 +4,7 @@ import sublime
 
 matches = []
 tables = []
+getTableDb = ''
 
 s = sublime.load_settings('CodekitMysql.sublime-settings');
 
@@ -46,8 +47,11 @@ class show_single_row(sublime_plugin.TextCommand):
 		# Setup cols
 		self.cols = [];
 
+		s = sublime.load_settings('CodekitMysql.sublime-settings');
+
 		# Command to get columns out! 
 		command = str(s.get('mysql_executable')) + " -e 'show columns from {2}.{3}' --raw -u {0} -p{1}".format(str(s.get('mysql_user')), str(s.get('mysql_pass')), str(self.database), str(self.table));
+		print(command)
 		output = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		out, err = output.communicate()
 
@@ -68,14 +72,20 @@ class show_single_row(sublime_plugin.TextCommand):
 
 	def result(self, value):
 
-		command = s.get('mysql_executable') + " -e 'SELECT * FROM {2}.{3} WHERE {4}' --raw -E -u {0} -p{1}".format(s.get('mysql_user'), s.get('mysql_pass'), self.database, self.table, value);
+		s = sublime.load_settings('CodekitMysql.sublime-settings');
+
+		command = str(s.get('mysql_executable')) + " -e 'SELECT * FROM {2}.{3} WHERE {4}' --raw -E -u {0} -p{1}".format(str(s.get('mysql_user')), str(s.get('mysql_pass')), str(self.database), str(self.table), str(value));
 		output = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 		out, err = output.communicate()
+		
 		if out:
 			view = sublime.active_window().new_file()
 			view.run_command('append', {
 			    'characters': out.decode('utf-8'),
-			    })		
+			    })	
+
+		if err:
+			print(err.decode('utf-8'))	
 
 class show_between(sublime_plugin.TextCommand):
 	table = ''
@@ -109,17 +119,19 @@ class show_between(sublime_plugin.TextCommand):
 
 class CodekitMysql(sublime_plugin.EventListener):
 	def on_activated_async(self, view):
+
 		# Get tables
 		tables = getTables(view)
-		
-		# Get database setting 
+
+		# Get Database
 		database = view.window().project_data()['database'];
 
 		# for each table run show cols and add to matches array
 		for table in tables:
 			if table:
 				
-				matches.append(table)
+				if table not in matches:
+					matches.append(table)
 
 				command = str(s.get('mysql_executable')) + " -e 'show columns from {2}.{3}' --raw -u {0} -p'{1}'".format(str(s.get('mysql_user')), str(s.get('mysql_pass')), str(database), str(table));
 
@@ -133,8 +145,10 @@ class CodekitMysql(sublime_plugin.EventListener):
 						cols = rawTable.split('\t')
 						col = cols[0];
 						if col:
-							matches.append(col);
-							matches.append('{0}.{1}'.format(table, col))
+							if col not in matches:
+								matches.append(col);
+							if '{0}.{1}'.format(table, col) not in matches:
+								matches.append('{0}.{1}'.format(table, col))
 
 	def on_query_completions(self, view, prefix, locations):
 		words = without_duplicates(matches)
@@ -151,11 +165,10 @@ def without_duplicates(words):
 
 
 def getTables(view):
-	if 'database' in str(view.window().project_data()):
+	if 'database' in view.window().project_data():
 
 		s = sublime.load_settings('CodekitMysql.sublime-settings');
 
-		# Get database setting 
 		getTableDb = view.window().project_data()['database'];
 
 		# Command to go get database tables!
